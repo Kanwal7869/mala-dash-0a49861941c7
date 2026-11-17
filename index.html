@@ -39,6 +39,10 @@
   .modal-help { color: #666; font-size: 13px; line-height: 1.45; margin: 12px 0 0; }
   #browse-google, #add-confirm { width: 100%; border: 0; border-radius: 8px; background: #4a1c24; color: #fff; padding: 10px 14px; cursor: pointer; font-size: 14px; }
   #add-error { min-height: 1.2em; color: #8a2a2a; font-size: 13px; margin: 8px 0 0; }
+  details.paste { margin-top: 12px; color: #666; font-size: 13px; }
+  details.paste summary { cursor: pointer; }
+  #add-toast[hidden] { display: none; }
+  #add-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 60; background: #4a1c24; color: #fff; padding: 12px 16px; border-radius: 10px; font-size: 14px; box-shadow: 0 8px 20px rgba(74,28,36,.28); max-width: min(420px, calc(100% - 32px)); }
   .card .kind { font-size: 12px; color: #7a6a6f; }
   .card a { margin-top: auto; align-self: flex-start; text-decoration: none; background: #4a1c24; color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 14px; }
   .empty { color: #888; font-style: italic; font-size: 14px; }
@@ -144,6 +148,7 @@
   </div>
 </main>
 <button type="button" id="add-doc" aria-label="Add a document">+</button>
+<div id="add-toast" hidden></div>
 <div id="add-modal" hidden>
   <div class="modal" role="dialog" aria-labelledby="add-title">
     <div class="modal-head">
@@ -162,11 +167,14 @@
         <option>Sheets</option>
       </select>
     </label>
-    <p class="modal-help">Your Google list opens in a window. Open the document you want, copy its address, and it is added here.</p>
+    <p class="modal-help">Your Google Docs or Sheets open in a window. Click a file and it is added to the section you chose.</p>
     <button type="button" id="browse-google">Show my Google Docs</button>
-    <input id="add-url" type="url" placeholder="Paste the Google Doc or Sheet link">
-    <input id="add-name" type="text" placeholder="Name to show on the card">
-    <button type="button" id="add-confirm">Add to dashboard</button>
+    <details class="paste">
+      <summary>Paste a link instead</summary>
+      <input id="add-url" type="url" placeholder="Paste the Google Doc or Sheet link">
+      <input id="add-name" type="text" placeholder="Name to show on the card">
+      <button type="button" id="add-confirm">Add to dashboard</button>
+    </details>
     <p id="add-error"></p>
   </div>
 </div>
@@ -342,6 +350,33 @@
     error.textContent = '';
     closeModal();
     if (picker && !picker.closed) picker.close();
+  });
+
+  var recentAdd = {};
+  function toast(text) {
+    var el = document.getElementById('add-toast');
+    el.textContent = text;
+    el.hidden = false;
+    clearTimeout(toast.t);
+    toast.t = setTimeout(function () { el.hidden = true; }, 2800);
+  }
+  window.addEventListener('message', function (e) {
+    var data = e.data;
+    if (!data || data.source !== 'mala-dash') return;
+    if (e.origin !== location.origin && e.origin !== 'https://docs.google.com') return;
+    var url = cleanUrl(data.url);
+    if (!url) return;
+    var title = String(data.title || '').replace(/\s+/g, ' ').trim().slice(0, 180);
+    if (!title || /credential|password|daptve/i.test(title)) return;
+    if (recentAdd[url] && Date.now() - recentAdd[url] < 2500) return;
+    recentAdd[url] = Date.now();
+    var itemKind = url.indexOf('/spreadsheets/') !== -1 ? 'Sheet' : 'Doc';
+    var sectionEl = document.getElementById('add-section');
+    var section = sectionEl ? sectionEl.value : (itemKind === 'Sheet' ? 'Sheets' : 'Docs');
+    if (['Pages', 'Blogs', 'Docs', 'Sheets'].indexOf(section) === -1) section = itemKind === 'Sheet' ? 'Sheets' : 'Docs';
+    addItem({ panel: activePanel(), section: section, title: title, url: url, kind: itemKind });
+    toast('Added ' + title);
+    closeModal();
   });
 })();
 </script>
