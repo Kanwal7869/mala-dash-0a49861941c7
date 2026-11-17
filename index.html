@@ -18,8 +18,27 @@
   section.group { margin-bottom: 30px; }
   section.group h3 { font-size: 15px; text-transform: uppercase; letter-spacing: .8px; color: #6b4b52; margin: 0 0 12px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-  .card { background: #fff; border: 1px solid #e3ddd6; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-  .card .title { font-weight: 600; font-size: 15px; line-height: 1.35; }
+  .card { position: relative; background: #fff; border: 1px solid #e3ddd6; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .card[hidden] { display: none !important; }
+  .card .title { font-weight: 600; font-size: 15px; line-height: 1.35; padding-right: 28px; }
+  .card .remove { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: #f3eeea; color: #4a1c24; cursor: pointer; font-size: 18px; line-height: 1; }
+  .card .remove:hover { background: #4a1c24; color: #fff; }
+  #add-doc { position: fixed; right: 24px; bottom: 24px; z-index: 30; width: 56px; height: 56px; border: 0; border-radius: 50%; background: #4a1c24; color: #fff; font-size: 34px; cursor: pointer; box-shadow: 0 8px 20px rgba(74,28,36,.28); }
+  #add-modal[hidden] { display: none; }
+  #add-modal { position: fixed; inset: 0; z-index: 40; background: rgba(30,16,18,.45); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal { width: min(480px, 100%); background: #fff; border-radius: 14px; padding: 18px 18px 16px; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .modal-head h2 { margin: 0; font-size: 18px; }
+  #add-close { width: 32px; height: 32px; border: 0; border-radius: 50%; background: #f3eeea; color: #4a1c24; cursor: pointer; font-size: 20px; }
+  .modal-kind, .section-pick, .modal input, #browse-google, #add-confirm { margin-top: 12px; }
+  .modal-kind { display: flex; gap: 8px; }
+  .modal-kind button { flex: 1; border: 1px solid #e3ddd6; background: #fff; border-radius: 8px; padding: 10px; cursor: pointer; }
+  .modal-kind button.on { background: #4a1c24; color: #fff; border-color: #4a1c24; }
+  .section-pick { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #444; }
+  .section-pick select, .modal input { width: 100%; border: 1px solid #e3ddd6; border-radius: 8px; padding: 10px; font: inherit; }
+  .modal-help { color: #666; font-size: 13px; line-height: 1.45; margin: 12px 0 0; }
+  #browse-google, #add-confirm { width: 100%; border: 0; border-radius: 8px; background: #4a1c24; color: #fff; padding: 10px 14px; cursor: pointer; font-size: 14px; }
+  #add-error { min-height: 1.2em; color: #8a2a2a; font-size: 13px; margin: 8px 0 0; }
   .card .kind { font-size: 12px; color: #7a6a6f; }
   .card a { margin-top: auto; align-self: flex-start; text-decoration: none; background: #4a1c24; color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 14px; }
   .empty { color: #888; font-style: italic; font-size: 14px; }
@@ -117,19 +136,214 @@
   </div>
   <div class="panel" id="emoji">
     <h2>Emojis content</h2>
-    <p class="note">Searched the Google Docs and Google Sheets home lists.</p>
-    <p class="empty">No emoji document or sheet was in those lists.</p>
+    <p class="note">Use the plus button to add a Google Doc or Sheet here.</p>
+    <section class="group"><h3>Pages</h3><div class="grid"></div></section>
+    <section class="group"><h3>Blogs</h3><div class="grid"></div></section>
+    <section class="group"><h3>Docs</h3><div class="grid"></div></section>
+    <section class="group"><h3>Sheets</h3><div class="grid"></div></section>
   </div>
 </main>
+<button type="button" id="add-doc" aria-label="Add a document">+</button>
+<div id="add-modal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="add-title">
+    <div class="modal-head">
+      <h2 id="add-title">Add a document</h2>
+      <button type="button" id="add-close" aria-label="Close">×</button>
+    </div>
+    <div class="modal-kind">
+      <button type="button" data-kind="doc" class="on">Google Docs</button>
+      <button type="button" data-kind="sheet">Google Sheets</button>
+    </div>
+    <label class="section-pick">Add to
+      <select id="add-section">
+        <option>Pages</option>
+        <option>Blogs</option>
+        <option>Docs</option>
+        <option>Sheets</option>
+      </select>
+    </label>
+    <p class="modal-help">Your Google list opens in a window. Open the document you want, copy its address, and it is added here.</p>
+    <button type="button" id="browse-google">Show my Google Docs</button>
+    <input id="add-url" type="url" placeholder="Paste the Google Doc or Sheet link">
+    <input id="add-name" type="text" placeholder="Name to show on the card">
+    <button type="button" id="add-confirm">Add to dashboard</button>
+    <p id="add-error"></p>
+  </div>
+</div>
 <script>
-document.querySelectorAll('aside button.tab').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    document.querySelectorAll('aside button.tab').forEach(function (b) { b.classList.remove('active'); });
-    document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('show'); });
-    btn.classList.add('active');
-    document.getElementById(btn.getAttribute('data-panel')).classList.add('show');
+(function () {
+  var STORE = 'mala-dash-v1';
+  var kind = 'doc';
+  var picker = null;
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORE)) || { removed: [], added: [] }; }
+    catch (e) { return { removed: [], added: [] }; }
+  }
+  function save(state) { localStorage.setItem(STORE, JSON.stringify(state)); }
+  function cleanUrl(raw) {
+    var m = String(raw || '').match(/https?:\/\/docs\.google\.com\/(document|spreadsheets)\/d\/([a-zA-Z0-9_-]+)/);
+    if (!m) return null;
+    return 'https://docs.google.com/' + m[1] + '/d/' + m[2] + '/edit';
+  }
+  function activePanel() {
+    var shown = document.querySelector('.panel.show');
+    return shown ? shown.id : 'mala';
+  }
+  function gridFor(panelId, section) {
+    var panel = document.getElementById(panelId);
+    var heads = panel.querySelectorAll('section.group h3');
+    for (var i = 0; i < heads.length; i++) {
+      if (heads[i].textContent.trim() === section) return heads[i].parentNode.querySelector('.grid');
+    }
+    return null;
+  }
+  function findCard(url) {
+    var cards = document.querySelectorAll('.card');
+    for (var i = 0; i < cards.length; i++) if (cards[i].getAttribute('data-url') === url) return cards[i];
+    return null;
+  }
+  function attachRemove(card) {
+    if (card.querySelector('.remove')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'remove';
+    btn.setAttribute('aria-label', 'Remove');
+    btn.textContent = '\u00d7';
+    btn.addEventListener('click', function () {
+      var url = card.getAttribute('data-url');
+      var state = load();
+      state.added = state.added.filter(function (item) { return item.url !== url; });
+      if (state.removed.indexOf(url) === -1) state.removed.push(url);
+      save(state);
+      card.hidden = true;
+    });
+    card.appendChild(btn);
+  }
+  function makeCard(item) {
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.setAttribute('data-url', item.url);
+    var title = document.createElement('div');
+    title.className = 'title';
+    title.textContent = item.title;
+    var label = document.createElement('div');
+    label.className = 'kind';
+    label.textContent = item.kind === 'Sheet' ? 'Google Sheet' : 'Google Doc';
+    var link = document.createElement('a');
+    link.href = item.url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = item.kind === 'Sheet' ? 'Open Google Sheet' : 'Open Google Doc';
+    card.appendChild(title);
+    card.appendChild(label);
+    card.appendChild(link);
+    attachRemove(card);
+    return card;
+  }
+  function addItem(item) {
+    var existing = findCard(item.url);
+    var state = load();
+    state.removed = state.removed.filter(function (url) { return url !== item.url; });
+    if (existing) {
+      existing.hidden = false;
+      save(state);
+      return;
+    }
+    state.added = state.added.filter(function (row) { return row.url !== item.url; });
+    state.added.push(item);
+    save(state);
+    var grid = gridFor(item.panel, item.section);
+    if (grid) grid.appendChild(makeCard(item));
+  }
+
+  document.querySelectorAll('.card').forEach(function (card) {
+    var link = card.querySelector('a');
+    if (!link) return;
+    var url = cleanUrl(link.getAttribute('href'));
+    if (!url) return;
+    card.setAttribute('data-url', url);
+    link.href = url;
+    attachRemove(card);
   });
-});
+  var state = load();
+  document.querySelectorAll('.card').forEach(function (card) {
+    if (state.removed.indexOf(card.getAttribute('data-url')) !== -1) card.hidden = true;
+  });
+  state.added.forEach(function (item) {
+    if (state.removed.indexOf(item.url) !== -1 || findCard(item.url)) return;
+    var grid = gridFor(item.panel, item.section);
+    if (grid) grid.appendChild(makeCard(item));
+  });
+
+  document.querySelectorAll('aside button.tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('aside button.tab').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('show'); });
+      btn.classList.add('active');
+      document.getElementById(btn.getAttribute('data-panel')).classList.add('show');
+    });
+  });
+
+  var modal = document.getElementById('add-modal');
+  var error = document.getElementById('add-error');
+  function openGoogle() {
+    var url = kind === 'sheet' ? 'https://docs.google.com/spreadsheets/u/0/' : 'https://docs.google.com/document/u/0/';
+    document.getElementById('browse-google').textContent = kind === 'sheet' ? 'Show my Google Sheets' : 'Show my Google Docs';
+    picker = window.open(url, 'mala-google-picker', 'width=1100,height=780');
+  }
+  function openModal() {
+    error.textContent = '';
+    modal.hidden = false;
+    openGoogle();
+  }
+  function closeModal() { modal.hidden = true; }
+  document.getElementById('add-doc').addEventListener('click', openModal);
+  document.getElementById('add-close').addEventListener('click', closeModal);
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+  document.querySelectorAll('.modal-kind button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      kind = btn.getAttribute('data-kind');
+      document.querySelectorAll('.modal-kind button').forEach(function (b) { b.classList.toggle('on', b === btn); });
+      var section = document.getElementById('add-section');
+      if (section.value === 'Docs' || section.value === 'Sheets') section.value = kind === 'sheet' ? 'Sheets' : 'Docs';
+      openGoogle();
+    });
+  });
+  document.getElementById('browse-google').addEventListener('click', openGoogle);
+  window.addEventListener('paste', function (e) {
+    if (modal.hidden) return;
+    var text = (e.clipboardData || window.clipboardData).getData('text');
+    var url = cleanUrl(text);
+    if (!url) return;
+    e.preventDefault();
+    document.getElementById('add-url').value = url;
+    if (url.indexOf('/spreadsheets/') !== -1) {
+      kind = 'sheet';
+      document.querySelectorAll('.modal-kind button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-kind') === 'sheet'); });
+    }
+    document.getElementById('add-name').focus();
+  });
+  document.getElementById('add-confirm').addEventListener('click', function () {
+    var url = cleanUrl(document.getElementById('add-url').value);
+    var title = document.getElementById('add-name').value.trim();
+    if (!url) { error.textContent = 'Paste a Google Docs or Google Sheets link.'; return; }
+    if (!title) { error.textContent = 'Enter the name to show on the card.'; document.getElementById('add-name').focus(); return; }
+    addItem({
+      panel: activePanel(),
+      section: document.getElementById('add-section').value,
+      title: title,
+      url: url,
+      kind: url.indexOf('/spreadsheets/') !== -1 ? 'Sheet' : 'Doc'
+    });
+    document.getElementById('add-url').value = '';
+    document.getElementById('add-name').value = '';
+    error.textContent = '';
+    closeModal();
+    if (picker && !picker.closed) picker.close();
+  });
+})();
 </script>
 </body>
 </html>
